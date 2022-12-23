@@ -1,56 +1,49 @@
-// Import the express module
 import express from "express";
-// Import the dotenv module
 import * as dotenv from "dotenv";
-// Import the cors module
 import cors from "cors";
-// Import the Configuration and OpenAIApi classes from the OpenAI SDK
 import { Configuration, OpenAIApi } from "openai";
-// Load the environment variables from the .env file
+
 dotenv.config();
-// Create an instance of the Configuration class with the API key
+
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Create an instance of the OpenAIApi class with the configuration
 const openai = new OpenAIApi(configuration);
-// Create an instance of the express app
+
 const app = express();
-// Enable CORS
 app.use(cors());
-// Enable parsing of JSON bodies
 app.use(express.json());
-// Create a POST route for the /completions endpoint
-app.post("/api/completions", async (req, res) => {
+
+app.get("/", async (req, res) => {
+  res.status(200).send({
+    message: "Hello from CodeX!",
+  });
+});
+
+app.post("/", async (req, res) => {
   try {
-    // Get the prompt from the request body
     const prompt = req.body.prompt;
-    // If no prompt exists, return an error
-    if (!prompt) {
-      res.status(400).send({ error: "Please provide a prompt" });
-      return;
-    }
-    // Call the OpenAI API to generate a response
+
     const response = await openai.createCompletion({
       model: "text-davinci-003",
       prompt: `${prompt}`,
-      temperature: 0,
-      max_tokens: 3000,
-      top_p: 1,
-      frequency_penalty: 0.5,
-      presence_penalty: 0,
+      temperature: 0, // Higher values means the model will take more risks.
+      max_tokens: 3000, // The maximum number of tokens to generate in the completion. Most models have a context length of 2048 tokens (except for the newest models, which support 4096).
+      top_p: 1, // alternative to sampling with temperature, called nucleus sampling
+      frequency_penalty: 0.5, // Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim.
+      presence_penalty: 0, // Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics.
     });
-    // Return the response to the client
+
     res.status(200).send({
       bot: response.data.choices[0].text,
     });
   } catch (error) {
-    console.log(error);
-    res.status(500).send({ error });
+    console.error(error);
+    res.status(500).send(error || "Something went wrong");
   }
 });
-// Start the server on port 5000
-app.listen(5000, () => {
-  console.log("Server is running on port http://localhost:5000");
-});
+
+app.listen(5000, () =>
+  console.log("AI server started on http://localhost:5000")
+);
